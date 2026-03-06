@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, UserRole } from '../types';
-import { supabase, supabaseMissing } from '../lib/supabase';
-import { objectToCamel } from '../lib/caseMapper';
+import { seedData } from '../data/seedData';
+
+const LS_USERS = 'oatms_users';
+const LS_SESSION = 'oatms_currentUser';
 
 interface AuthContextType {
   user: User | null;
@@ -14,53 +16,42 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function getUsers(): User[] {
+  // Ensure users exist in localStorage (AuthProvider loads before DataProvider)
+  let raw = localStorage.getItem(LS_USERS);
+  if (!raw) {
+    localStorage.setItem(LS_USERS, JSON.stringify(seedData.users));
+    raw = localStorage.getItem(LS_USERS);
+  }
+  return raw ? JSON.parse(raw) : [];
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    const storedUserId = localStorage.getItem('oatms_currentUser');
+    const storedUserId = localStorage.getItem(LS_SESSION);
     if (storedUserId) {
-      supabase
-        .from('users')
-        .select('*')
-        .eq('id', storedUserId)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            const u = objectToCamel<User>(data);
-            if (u.isActive) setUser(u);
-          }
-          setAuthLoading(false);
-        });
-    } else {
-      setAuthLoading(false);
+      const users = getUsers();
+      const found = users.find(u => u.id === storedUserId);
+      if (found && found.isActive) setUser(found);
     }
+    setAuthLoading(false);
   }, []);
 
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
-    if (supabaseMissing) throw new Error('Database not configured. Set Supabase environment variables.');
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', username)
-      .eq('password', password)
-      .eq('is_active', true)
-      .single();
-
-    if (error) throw new Error(error.message);
-    if (!data) return false;
-
-    const found = objectToCamel<User>(data);
+    const users = getUsers();
+    const found = users.find(u => u.email === username && u.password === password && u.isActive);
+    if (!found) return false;
     setUser(found);
-    localStorage.setItem('oatms_currentUser', found.id);
+    localStorage.setItem(LS_SESSION, found.id);
     return true;
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem('oatms_currentUser');
+    localStorage.removeItem(LS_SESSION);
   }, []);
 
   const hasRole = useCallback((roles: UserRole[]): boolean => {

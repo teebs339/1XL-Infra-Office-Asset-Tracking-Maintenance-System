@@ -1,35 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../lib/supabase';
-import { objectToSnake, objectToCamel, arrayToCamel } from '../lib/caseMapper';
 import {
   User, Department, Location, Asset, Allocation, Maintenance, Repair, Vendor,
   Consumable, ConsumableAllocation, Procurement, DepreciationRecord, AuditLog,
   Notification, Document, SystemConfig
 } from '../types';
+import { seedData } from '../data/seedData';
 
-// ---- helpers ----
-type TableName =
-  | 'users' | 'departments' | 'locations' | 'assets' | 'allocations'
-  | 'maintenance' | 'repairs' | 'vendors' | 'consumables' | 'consumable_allocations'
-  | 'procurements' | 'depreciation' | 'audit_logs' | 'notifications' | 'documents';
+// ---- localStorage helpers ----
+const LS = 'oatms_';
 
-async function fetchTable<T>(table: TableName): Promise<T[]> {
-  const { data, error } = await supabase.from(table).select('*');
-  if (error) { console.error(`Error fetching ${table}:`, error); return []; }
-  return arrayToCamel<T>(data ?? []);
+function getStore<T>(key: string): T[] {
+  const raw = localStorage.getItem(LS + key);
+  return raw ? JSON.parse(raw) : [];
 }
 
-// Convert "" → null for UUID FK fields (_id) and optional date fields
-function sanitize(obj: Record<string, any>): Record<string, any> {
-  const out: Record<string, any> = {};
-  for (const [k, v] of Object.entries(obj)) {
-    if (v === '' && (k.endsWith('_id') || k.endsWith('_date') || k.endsWith('_start') || k.endsWith('_end'))) {
-      out[k] = null;
-    } else {
-      out[k] = v;
-    }
-  }
-  return out;
+function setStore<T>(key: string, items: T[]): void {
+  localStorage.setItem(LS + key, JSON.stringify(items));
 }
 
 // ---- CRUD wrapper ----
@@ -41,8 +27,8 @@ interface CrudOps<T extends { id: string }> {
   remove: (id: string) => Promise<boolean>;
 }
 
-function makeCrud<T extends { id: string }>(
-  table: TableName,
+function makeLocalCrud<T extends { id: string }>(
+  key: string,
   cache: React.MutableRefObject<T[]>,
   setCache: (items: T[]) => void
 ): CrudOps<T> {
@@ -50,31 +36,28 @@ function makeCrud<T extends { id: string }>(
     getAll: () => cache.current,
     getById: (id: string) => cache.current.find(i => i.id === id),
     create: async (item: Omit<T, 'id'>) => {
-      const snaked = sanitize(objectToSnake(item as Record<string, any>));
-      const { data, error } = await supabase.from(table).insert(snaked).select().single();
-      if (error) throw error;
-      const created = objectToCamel<T>(data);
+      const created = { ...item, id: crypto.randomUUID() } as T;
       const next = [...cache.current, created];
       cache.current = next;
       setCache(next);
+      setStore(key, next);
       return created;
     },
     update: async (id: string, updates: Partial<T>) => {
-      const snaked = sanitize(objectToSnake(updates as Record<string, any>));
-      const { data, error } = await supabase.from(table).update(snaked).eq('id', id).select().single();
-      if (error) throw error;
-      const updated = objectToCamel<T>(data);
+      const existing = cache.current.find(i => i.id === id);
+      if (!existing) return undefined;
+      const updated = { ...existing, ...updates };
       const next = cache.current.map(i => (i.id === id ? updated : i));
       cache.current = next;
       setCache(next);
+      setStore(key, next);
       return updated;
     },
     remove: async (id: string) => {
-      const { error } = await supabase.from(table).delete().eq('id', id);
-      if (error) throw error;
       const next = cache.current.filter(i => i.id !== id);
       cache.current = next;
       setCache(next);
+      setStore(key, next);
       return true;
     },
   };
@@ -106,18 +89,6 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const defaultConfig: SystemConfig = {
-  companyName: '1XL Infrastructure',
-  currency: 'USD',
-  dateFormat: 'MM/DD/YYYY',
-  maintenanceReminderDays: 7,
-  warrantyAlertDays: 30,
-  stockAlertEnabled: true,
-  depreciationMethod: 'straight_line',
-  autoBackupEnabled: true,
-  backupFrequency: 'weekly',
-};
-
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
@@ -137,7 +108,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [, setAuditLogsState] = useState<AuditLog[]>([]);
   const [, setNotificationsState] = useState<Notification[]>([]);
   const [, setDocumentsState] = useState<Document[]>([]);
-  const [configState, setConfigState] = useState<SystemConfig>(defaultConfig);
+  const [configState, setConfigState] = useState<SystemConfig>(seedData.systemConfig);
 
   // Refs for synchronous reads
   const usersRef = useRef<User[]>([]);
@@ -156,78 +127,79 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const notificationsRef = useRef<Notification[]>([]);
   const documentsRef = useRef<Document[]>([]);
 
-  const loadAll = useCallback(async () => {
-    const [
-      users, departments, locations, assets, allocations,
-      maintenance, repairs, vendors, consumables, consumableAllocations,
-      procurements, depreciation, auditLogs, notifications, documents, configRes
-    ] = await Promise.all([
-      fetchTable<User>('users'),
-      fetchTable<Department>('departments'),
-      fetchTable<Location>('locations'),
-      fetchTable<Asset>('assets'),
-      fetchTable<Allocation>('allocations'),
-      fetchTable<Maintenance>('maintenance'),
-      fetchTable<Repair>('repairs'),
-      fetchTable<Vendor>('vendors'),
-      fetchTable<Consumable>('consumables'),
-      fetchTable<ConsumableAllocation>('consumable_allocations'),
-      fetchTable<Procurement>('procurements'),
-      fetchTable<DepreciationRecord>('depreciation'),
-      fetchTable<AuditLog>('audit_logs'),
-      fetchTable<Notification>('notifications'),
-      fetchTable<Document>('documents'),
-      supabase.from('system_config').select('*').single(),
-    ]);
+  const loadAll = useCallback(() => {
+    const isFirstLoad = !localStorage.getItem(LS + 'seeded');
 
-    usersRef.current = users; setUsersState(users);
-    departmentsRef.current = departments; setDepartmentsState(departments);
-    locationsRef.current = locations; setLocationsState(locations);
-    assetsRef.current = assets; setAssetsState(assets);
-    allocationsRef.current = allocations; setAllocationsState(allocations);
-    maintenanceRef.current = maintenance; setMaintenanceState(maintenance);
-    repairsRef.current = repairs; setRepairsState(repairs);
-    vendorsRef.current = vendors; setVendorsState(vendors);
-    consumablesRef.current = consumables; setConsumablesState(consumables);
-    consumableAllocationsRef.current = consumableAllocations; setConsumableAllocationsState(consumableAllocations);
-    procurementsRef.current = procurements; setProcurementsState(procurements);
-    depreciationRef.current = depreciation; setDepreciationState(depreciation);
-    auditLogsRef.current = auditLogs; setAuditLogsState(auditLogs);
-    notificationsRef.current = notifications; setNotificationsState(notifications);
-    documentsRef.current = documents; setDocumentsState(documents);
-
-    if (configRes.data) {
-      const c = objectToCamel<SystemConfig>(configRes.data);
-      setConfigState(c);
+    function load<T>(key: string, seed: T[]): T[] {
+      if (isFirstLoad) { setStore(key, seed); return seed; }
+      return getStore<T>(key);
     }
 
+    const u = load<User>('users', seedData.users);
+    const dep = load<Department>('departments', seedData.departments);
+    const loc = load<Location>('locations', seedData.locations);
+    const ast = load<Asset>('assets', seedData.assets);
+    const alloc = load<Allocation>('allocations', seedData.allocations);
+    const maint = load<Maintenance>('maintenance', seedData.maintenance);
+    const rep = load<Repair>('repairs', seedData.repairs);
+    const vend = load<Vendor>('vendors', seedData.vendors);
+    const cons = load<Consumable>('consumables', seedData.consumables);
+    const calloc = load<ConsumableAllocation>('consumableAllocations', seedData.consumableAllocations);
+    const proc = load<Procurement>('procurements', seedData.procurements);
+    const depr = load<DepreciationRecord>('depreciation', seedData.depreciation);
+    const logs = load<AuditLog>('auditLogs', seedData.auditLogs);
+    const notif = load<Notification>('notifications', seedData.notifications);
+    const docs = load<Document>('documents', seedData.documents);
+
+    usersRef.current = u; setUsersState(u);
+    departmentsRef.current = dep; setDepartmentsState(dep);
+    locationsRef.current = loc; setLocationsState(loc);
+    assetsRef.current = ast; setAssetsState(ast);
+    allocationsRef.current = alloc; setAllocationsState(alloc);
+    maintenanceRef.current = maint; setMaintenanceState(maint);
+    repairsRef.current = rep; setRepairsState(rep);
+    vendorsRef.current = vend; setVendorsState(vend);
+    consumablesRef.current = cons; setConsumablesState(cons);
+    consumableAllocationsRef.current = calloc; setConsumableAllocationsState(calloc);
+    procurementsRef.current = proc; setProcurementsState(proc);
+    depreciationRef.current = depr; setDepreciationState(depr);
+    auditLogsRef.current = logs; setAuditLogsState(logs);
+    notificationsRef.current = notif; setNotificationsState(notif);
+    documentsRef.current = docs; setDocumentsState(docs);
+
+    const config: SystemConfig = isFirstLoad
+      ? seedData.systemConfig
+      : JSON.parse(localStorage.getItem(LS + 'systemConfig') || 'null') ?? seedData.systemConfig;
+    if (isFirstLoad) localStorage.setItem(LS + 'systemConfig', JSON.stringify(config));
+    setConfigState(config);
+
+    if (isFirstLoad) localStorage.setItem(LS + 'seeded', 'true');
     setLoading(false);
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
   // Build CRUD ops
-  const users = makeCrud<User>('users', usersRef, setUsersState);
-  const departments = makeCrud<Department>('departments', departmentsRef, setDepartmentsState);
-  const locations = makeCrud<Location>('locations', locationsRef, setLocationsState);
-  const assets = makeCrud<Asset>('assets', assetsRef, setAssetsState);
-  const allocations = makeCrud<Allocation>('allocations', allocationsRef, setAllocationsState);
-  const maintenance = makeCrud<Maintenance>('maintenance', maintenanceRef, setMaintenanceState);
-  const repairs = makeCrud<Repair>('repairs', repairsRef, setRepairsState);
-  const vendors = makeCrud<Vendor>('vendors', vendorsRef, setVendorsState);
-  const consumables = makeCrud<Consumable>('consumables', consumablesRef, setConsumablesState);
-  const consumableAllocations = makeCrud<ConsumableAllocation>('consumable_allocations', consumableAllocationsRef, setConsumableAllocationsState);
-  const procurements = makeCrud<Procurement>('procurements', procurementsRef, setProcurementsState);
-  const depreciation = makeCrud<DepreciationRecord>('depreciation', depreciationRef, setDepreciationState);
-  const auditLogs = makeCrud<AuditLog>('audit_logs', auditLogsRef, setAuditLogsState);
-  const notifications = makeCrud<Notification>('notifications', notificationsRef, setNotificationsState);
-  const documents = makeCrud<Document>('documents', documentsRef, setDocumentsState);
+  const users = makeLocalCrud<User>('users', usersRef, setUsersState);
+  const departments = makeLocalCrud<Department>('departments', departmentsRef, setDepartmentsState);
+  const locations = makeLocalCrud<Location>('locations', locationsRef, setLocationsState);
+  const assets = makeLocalCrud<Asset>('assets', assetsRef, setAssetsState);
+  const allocations = makeLocalCrud<Allocation>('allocations', allocationsRef, setAllocationsState);
+  const maintenance = makeLocalCrud<Maintenance>('maintenance', maintenanceRef, setMaintenanceState);
+  const repairs = makeLocalCrud<Repair>('repairs', repairsRef, setRepairsState);
+  const vendors = makeLocalCrud<Vendor>('vendors', vendorsRef, setVendorsState);
+  const consumables = makeLocalCrud<Consumable>('consumables', consumablesRef, setConsumablesState);
+  const consumableAllocations = makeLocalCrud<ConsumableAllocation>('consumableAllocations', consumableAllocationsRef, setConsumableAllocationsState);
+  const procurements = makeLocalCrud<Procurement>('procurements', procurementsRef, setProcurementsState);
+  const depreciation = makeLocalCrud<DepreciationRecord>('depreciation', depreciationRef, setDepreciationState);
+  const auditLogs = makeLocalCrud<AuditLog>('auditLogs', auditLogsRef, setAuditLogsState);
+  const notifications = makeLocalCrud<Notification>('notifications', notificationsRef, setNotificationsState);
+  const documents = makeLocalCrud<Document>('documents', documentsRef, setDocumentsState);
 
   const systemConfig = {
     get: () => configState,
     save: async (c: SystemConfig) => {
-      const snaked = objectToSnake(c as Record<string, any>);
-      await supabase.from('system_config').update(snaked).eq('id', 1);
+      localStorage.setItem(LS + 'systemConfig', JSON.stringify(c));
       setConfigState(c);
     },
   };
@@ -257,12 +229,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     } as Omit<Notification, 'id'>);
   };
 
+  const refresh = useCallback(async () => {
+    // Clear all oatms_ keys so next loadAll re-seeds from defaults
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(LS))
+      .forEach(k => localStorage.removeItem(k));
+    loadAll();
+  }, [loadAll]);
+
   const value: DataContextType = {
     loading,
     users, departments, locations, assets, allocations,
     maintenance, repairs, vendors, consumables, consumableAllocations,
     procurements, depreciation, auditLogs, notifications, documents,
-    systemConfig, addAuditLog, addNotification, refresh: loadAll,
+    systemConfig, addAuditLog, addNotification, refresh,
   };
 
   if (loading) {
