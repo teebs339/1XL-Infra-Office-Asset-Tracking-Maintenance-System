@@ -14,7 +14,7 @@ const locations: Location[] = [
 
 // ── Users ──────────────────────────────────────────────────
 const users: User[] = [
-  { id: 'user-1', name: 'Ateeb Ahmed', email: 'admin', password: 'admin123', role: 'admin', departmentId: 'dept-1', phone: '+971-50-123-4567', isActive: true, createdAt: '2024-01-10T08:00:00Z', updatedAt: '2024-01-10T08:00:00Z' },
+  { id: 'user-1', name: 'Ateeb Ahmed', email: 'admin', password: 'Asset@1xl.2026', role: 'admin', departmentId: 'dept-1', phone: '+971-50-123-4567', isActive: true, createdAt: '2024-01-10T08:00:00Z', updatedAt: '2024-01-10T08:00:00Z' },
   { id: 'user-2', name: 'Sarah Mitchell', email: 'sarah@1xlinfra.com', password: 'pass123', role: 'manager', departmentId: 'dept-2', phone: '+971-50-234-5678', isActive: true, createdAt: '2024-01-15T08:00:00Z', updatedAt: '2024-01-15T08:00:00Z' },
   { id: 'user-3', name: 'Omar Hassan', email: 'omar@1xlinfra.com', password: 'pass123', role: 'technician', departmentId: 'dept-6', phone: '+971-55-345-6789', isActive: true, createdAt: '2024-02-01T08:00:00Z', updatedAt: '2024-02-01T08:00:00Z' },
   { id: 'user-4', name: 'Priya Sharma', email: 'priya@1xlinfra.com', password: 'pass123', role: 'manager', departmentId: 'dept-3', phone: '+971-50-456-7890', isActive: true, createdAt: '2024-02-10T08:00:00Z', updatedAt: '2024-02-10T08:00:00Z' },
