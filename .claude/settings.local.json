@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create vite@latest . -- --template react-ts)",
+      "Bash(npx --yes create-vite@latest . --template react-ts)",
+      "Bash(npm init -y)",
+      "Bash(npm install react react-dom react-router-dom recharts date-fns lucide-react)",
+      "Bash(npm install -D typescript @types/react @types/react-dom @vitejs/plugin-react vite tailwindcss @tailwindcss/vite autoprefixer)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx vite build)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(grep -l \"indigo-500\" src/pages/*.tsx)",
+      "Bash(grep -l \"slate-\" src/pages/*.tsx)",
+      "Bash(npm install @supabase/supabase-js)",
+      "Bash(find \"C:/Users/Ateeb_1XL/Desktop/1XL INFRA/1XL-Infra-Office-Asset-Tracking-Maintenance-System/src\" -name \"*.tsx\" -exec sed -i 's/dark:\\\\\\([a-z:]*\\\\\\)slate-/dark:\\\\1neutral-/g' {} +)",
+      "Bash(find \"C:/Users/Ateeb_1XL/Desktop/1XL INFRA/1XL-Infra-Office-Asset-Tracking-Maintenance-System/src\" -name \"*.tsx\" -exec sed -i 's/dark:\\\\\\([a-z:-]*\\\\\\)slate-/dark:\\\\1neutral-/g' {} +)",
+      "Bash(find \"C:/Users/Ateeb_1XL/Desktop/1XL INFRA/1XL-Infra-Office-Asset-Tracking-Maintenance-System/src\" -name \"*.tsx\" -exec sed -i 's/dark:\\\\\\([a-z:-]*\\\\\\)neutral-/dark:\\\\1slate-/g' {} +)"
+    ]
+  }
+}
