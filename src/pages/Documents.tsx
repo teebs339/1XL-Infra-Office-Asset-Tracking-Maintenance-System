@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
-import { PageHeader, DataTable, Modal, ConfirmDialog } from '../components/ui';
+import { PageHeader, DataTable, Modal, ConfirmDialog, DependencyNotice } from '../components/ui';
 import { formatDate, exportToCSV } from '../utils/helpers';
 import { Document } from '../types';
 import { Plus, Download, FileText, Trash2, File, FileImage, FileSpreadsheet } from 'lucide-react';
@@ -101,6 +101,9 @@ export default function Documents() {
 
       <Modal isOpen={showAdd} onClose={() => setShowAdd(false)} title="Upload Document" size="lg">
         <div className="space-y-4">
+          <DependencyNotice missing={[
+            ...(assets.length === 0 ? [{ label: 'Create Assets', path: '/assets', pageName: 'Assets' }] : []),
+          ]} />
           <div className="grid grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Document Name *</label>
               <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-slate-700 dark:text-white" /></div>

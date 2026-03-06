@@ -19,6 +19,19 @@ async function fetchTable<T>(table: TableName): Promise<T[]> {
   return arrayToCamel<T>(data ?? []);
 }
 
+// Convert "" → null for UUID FK fields (_id) and optional date fields
+function sanitize(obj: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === '' && (k.endsWith('_id') || k.endsWith('_date') || k.endsWith('_start') || k.endsWith('_end'))) {
+      out[k] = null;
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
 // ---- CRUD wrapper ----
 interface CrudOps<T extends { id: string }> {
   getAll: () => T[];
@@ -37,7 +50,7 @@ function makeCrud<T extends { id: string }>(
     getAll: () => cache.current,
     getById: (id: string) => cache.current.find(i => i.id === id),
     create: async (item: Omit<T, 'id'>) => {
-      const snaked = objectToSnake(item as Record<string, any>);
+      const snaked = sanitize(objectToSnake(item as Record<string, any>));
       const { data, error } = await supabase.from(table).insert(snaked).select().single();
       if (error) throw error;
       const created = objectToCamel<T>(data);
@@ -47,7 +60,7 @@ function makeCrud<T extends { id: string }>(
       return created;
     },
     update: async (id: string, updates: Partial<T>) => {
-      const snaked = objectToSnake(updates as Record<string, any>);
+      const snaked = sanitize(objectToSnake(updates as Record<string, any>));
       const { data, error } = await supabase.from(table).update(snaked).eq('id', id).select().single();
       if (error) throw error;
       const updated = objectToCamel<T>(data);

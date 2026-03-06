@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
-import { PageHeader, DataTable, Modal, StatusBadge } from '../components/ui';
+import { PageHeader, DataTable, Modal, StatusBadge, DependencyNotice } from '../components/ui';
 import { formatDate, formatCurrency, exportToCSV } from '../utils/helpers';
 import { Procurement as ProcurementType } from '../types';
 import { Plus, Download, CheckCircle, XCircle } from 'lucide-react';
@@ -115,6 +115,9 @@ export default function Procurement() {
       {/* Add Modal */}
       <Modal isOpen={showAdd} onClose={() => setShowAdd(false)} title="New Procurement Request" size="lg">
         <div className="space-y-4">
+          <DependencyNotice missing={[
+            ...(departments.length === 0 ? [{ label: 'Create Departments', path: '/locations', pageName: 'Locations & Departments' }] : []),
+          ]} />
           <div className="grid grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Asset Name *</label>
               <input type="text" value={form.assetName} onChange={e => setForm({...form, assetName: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-slate-700 dark:text-white" /></div>

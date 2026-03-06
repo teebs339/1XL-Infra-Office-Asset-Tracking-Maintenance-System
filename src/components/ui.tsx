@@ -94,19 +94,20 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+      document.addEventListener('keydown', handleKey);
+      return () => { document.body.style.overflow = ''; document.removeEventListener('keydown', handleKey); };
     } else {
       document.body.style.overflow = '';
     }
-    return () => { document.body.style.overflow = ''; };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
   const sizeMap = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn">
       <div
         className={`bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full ${sizeMap[size]} max-h-[90vh] overflow-y-auto animate-scaleIn`}
-        onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 rounded-t-2xl z-10">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
@@ -251,10 +252,18 @@ export function EmptyState({ icon: Icon, title, description, action }: {
 export function ConfirmDialog({ isOpen, onClose, onConfirm, title, message }: {
   isOpen: boolean; onClose: () => void; onConfirm: () => void; title: string; message: string;
 }) {
+  useEffect(() => {
+    if (isOpen) {
+      const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+      document.addEventListener('keydown', handleKey);
+      return () => document.removeEventListener('keydown', handleKey);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scaleIn" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scaleIn">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{message}</p>
         <div className="flex justify-end gap-3 mt-6">

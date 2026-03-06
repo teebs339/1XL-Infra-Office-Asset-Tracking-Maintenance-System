@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Allocation, AllocationStatus } from '../types';
 import { useData } from '../contexts/DataContext';
-import { PageHeader, DataTable, Modal, StatusBadge, ConfirmDialog } from '../components/ui';
+import { PageHeader, DataTable, Modal, StatusBadge, ConfirmDialog, DependencyNotice } from '../components/ui';
 import { formatDate, exportToCSV } from '../utils/helpers';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus, Download, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
@@ -202,6 +202,10 @@ export default function Allocations() {
 
       {/* New Request Modal */}
       <Modal isOpen={showNewModal} onClose={() => setShowNewModal(false)} title="New Allocation Request" size="md">
+        <DependencyNotice missing={[
+          ...(assets.filter(a => a.status === 'available').length === 0 ? [{ label: 'Create Assets', path: '/assets', pageName: 'Assets' }] : []),
+          ...(departments.length === 0 ? [{ label: 'Create Departments', path: '/locations', pageName: 'Locations & Departments' }] : []),
+        ]} />
         <form onSubmit={handleCreateRequest} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Asset</label>

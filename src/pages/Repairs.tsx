@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
-import { PageHeader, DataTable, Modal, StatusBadge } from '../components/ui';
+import { PageHeader, DataTable, Modal, StatusBadge, DependencyNotice } from '../components/ui';
 import { formatDate, formatCurrency, exportToCSV } from '../utils/helpers';
 import { Repair } from '../types';
 import { Plus, Download, Wrench } from 'lucide-react';
@@ -110,6 +110,9 @@ export default function Repairs() {
       {/* Add Modal */}
       <Modal isOpen={showAdd} onClose={() => setShowAdd(false)} title="New Repair Request" size="lg">
         <div className="space-y-4">
+          <DependencyNotice missing={[
+            ...(assets.length === 0 ? [{ label: 'Create Assets', path: '/assets', pageName: 'Assets' }] : []),
+          ]} />
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Asset *</label>
             <select value={form.assetId} onChange={e => setForm({...form, assetId: e.target.value})}
