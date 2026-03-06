@@ -43,7 +43,7 @@ export default function Login() {
       <div className="hidden lg:flex lg:w-[55%] relative items-center justify-center p-16">
         <div className="max-w-xl">
           <div className="flex items-center gap-4 mb-10">
-            <img src="/1XL VENTURES (1).jpg" alt="1XL" className="w-14 h-14 rounded-2xl object-contain" />
+            <img src={`${import.meta.env.BASE_URL}1XL VENTURES (1).jpg`} alt="1XL" className="w-14 h-14 rounded-2xl object-contain" />
             <span className="text-3xl font-bold text-white tracking-tight">1XL Assets</span>
           </div>
           <h1 className="text-5xl xl:text-6xl font-bold text-white leading-[1.1] mb-8">
@@ -81,7 +81,7 @@ export default function Login() {
         <div className="w-full max-w-[520px]">
           {/* Mobile branding */}
           <div className="lg:hidden flex items-center gap-3 mb-10 justify-center">
-            <img src="/1XL VENTURES (1).jpg" alt="1XL" className="w-12 h-12 rounded-xl object-contain" />
+            <img src={`${import.meta.env.BASE_URL}1XL VENTURES (1).jpg`} alt="1XL" className="w-12 h-12 rounded-xl object-contain" />
             <span className="text-2xl font-bold text-white tracking-tight">1XL Assets</span>
           </div>
 
