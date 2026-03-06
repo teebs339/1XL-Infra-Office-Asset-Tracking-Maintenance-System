@@ -51,7 +51,7 @@ export default function Layout() {
         {/* Logo */}
         <div className="h-16 flex items-center px-4 border-b border-slate-700/50">
           <div className="flex items-center gap-3 min-w-0">
-            <img src={`${import.meta.env.BASE_URL}1XL VENTURES (1).jpg`} alt="1XL" className="w-9 h-9 rounded-lg flex-shrink-0 object-contain" />
+            <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="1XL" className="w-9 h-9 rounded-lg flex-shrink-0 object-contain" />
             {!collapsed && (
               <span className="text-lg font-bold tracking-tight whitespace-nowrap text-white">1XL Assets</span>
             )}

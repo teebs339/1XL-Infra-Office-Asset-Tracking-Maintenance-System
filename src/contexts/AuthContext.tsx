@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, UserRole } from '../types';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseMissing } from '../lib/supabase';
 import { objectToCamel } from '../lib/caseMapper';
 
 interface AuthContextType {
@@ -39,6 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
+    if (supabaseMissing) throw new Error('Database not configured. Set Supabase environment variables.');
+
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -47,7 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('is_active', true)
       .single();
 
-    if (error || !data) return false;
+    if (error) throw new Error(error.message);
+    if (!data) return false;
 
     const found = objectToCamel<User>(data);
     setUser(found);
