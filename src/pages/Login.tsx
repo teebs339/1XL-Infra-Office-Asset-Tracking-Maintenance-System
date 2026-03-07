@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, ArrowRight, Shield, BarChart3, Users, Wrench } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Shield, BarChart3, Users, Wrench, Building2 } from 'lucide-react';
+import type { Organization } from '../types';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -9,8 +10,9 @@ export default function Login() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, organizations, switchOrg } = useAuth();
   const navigate = useNavigate();
+  const [selectedOrg, setSelectedOrg] = useState<Organization>(organizations[0]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +21,7 @@ export default function Login() {
     try {
       const success = await login(username, password);
       if (success) {
+        switchOrg(selectedOrg);
         navigate('/dashboard');
       } else {
         setError('Invalid username or password');
@@ -88,7 +91,49 @@ export default function Login() {
           <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-3xl p-10 sm:p-12 shadow-2xl">
             <div className="mb-8">
               <h2 className="text-2xl sm:text-3xl font-semibold text-white">Welcome back</h2>
-              <p className="text-base text-slate-400 mt-2">Sign in to your account to continue</p>
+              <p className="text-base text-slate-400 mt-2">Select your organization and sign in</p>
+            </div>
+
+            {/* Organization Selector */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-300 mb-3">Organization</label>
+              <div className="grid grid-cols-3 gap-2.5">
+                {organizations.map(org => (
+                  <button
+                    key={org.id}
+                    type="button"
+                    onClick={() => setSelectedOrg(org)}
+                    className={`relative flex flex-col items-center gap-2 px-3 py-4 rounded-xl border-2 transition-all duration-200 ${
+                      selectedOrg.id === org.id
+                        ? 'border-indigo-500 bg-indigo-500/15 shadow-lg shadow-indigo-500/10'
+                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      selectedOrg.id === org.id ? 'bg-indigo-500/30' : 'bg-slate-700/50'
+                    }`}>
+                      <Building2 className={`w-4.5 h-4.5 ${
+                        selectedOrg.id === org.id ? 'text-indigo-400' : 'text-slate-400'
+                      }`} />
+                    </div>
+                    <div className="text-center">
+                      <div className={`text-xs font-bold tracking-wide ${
+                        selectedOrg.id === org.id ? 'text-indigo-300' : 'text-slate-400'
+                      }`}>1XL</div>
+                      <div className={`text-[11px] font-semibold mt-0.5 ${
+                        selectedOrg.id === org.id ? 'text-white' : 'text-slate-500'
+                      }`}>{org.shortName}</div>
+                    </div>
+                    {selectedOrg.id === org.id && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {error && (

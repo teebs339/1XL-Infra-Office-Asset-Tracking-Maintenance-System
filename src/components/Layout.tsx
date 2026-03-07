@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -6,7 +6,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import {
   LayoutDashboard, Package, Users, ArrowLeftRight, Wrench, Truck, ShoppingCart,
   TrendingDown, ScrollText, Bell, BarChart3, FileText, Building2, Settings,
-  LogOut, Menu, ChevronLeft, ChevronRight, BoxesIcon, Search, X, Sun, Moon
+  LogOut, Menu, ChevronLeft, ChevronRight, BoxesIcon, Search, X, Sun, Moon,
+  ChevronDown, Check
 } from 'lucide-react';
 
 const navItems = [
@@ -28,22 +29,83 @@ const navItems = [
 ];
 
 export default function Layout() {
-  const { user, logout } = useAuth();
+  const { user, logout, organization, organizations, switchOrg } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
+  const orgDropdownRef = useRef<HTMLDivElement>(null);
 
   const data = useData();
   const { isDark, toggleTheme } = useTheme();
   const notifications = data.notifications.getAll().filter(n => n.userId === user?.id && !n.isRead);
   const filteredNav = navItems.filter(item => user && item.roles.includes(user.role));
 
+  // Close org dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (orgDropdownRef.current && !orgDropdownRef.current.contains(e.target as Node)) {
+        setOrgDropdownOpen(false);
+      }
+    }
+    if (orgDropdownOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [orgDropdownOpen]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
+
+  function OrgSwitcher() {
+    if (!organization) return null;
+    return (
+      <div className="px-3 py-2 border-b border-slate-700/50" ref={orgDropdownRef}>
+        <button
+          onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
+          className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 transition-colors ${
+            collapsed ? 'justify-center' : ''
+          }`}
+          title={collapsed ? organization.name : undefined}
+        >
+          <div className="w-7 h-7 rounded-md bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+            <Building2 className="w-3.5 h-3.5 text-indigo-400" />
+          </div>
+          {!collapsed && (
+            <>
+              <div className="flex-1 text-left min-w-0">
+                <div className="text-xs font-semibold text-white truncate">{organization.name}</div>
+              </div>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${orgDropdownOpen ? 'rotate-180' : ''}`} />
+            </>
+          )}
+        </button>
+        {orgDropdownOpen && (
+          <div className={`mt-1.5 bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-xl shadow-black/30 ${
+            collapsed ? 'absolute left-16 top-16 w-48 z-50' : ''
+          }`}>
+            {organizations.map(org => (
+              <button
+                key={org.id}
+                onClick={() => { switchOrg(org); setOrgDropdownOpen(false); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors ${
+                  organization.id === org.id
+                    ? 'bg-indigo-500/15 text-indigo-300'
+                    : 'text-slate-300 hover:bg-slate-700/50'
+                }`}
+              >
+                <Building2 className="w-4 h-4 flex-shrink-0" />
+                <span className="text-sm font-medium flex-1">{org.name}</span>
+                {organization.id === org.id && <Check className="w-4 h-4 text-indigo-400" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   function SidebarContent() {
     return (
@@ -57,6 +119,9 @@ export default function Layout() {
             )}
           </div>
         </div>
+
+        {/* Organization Switcher */}
+        <OrgSwitcher />
 
         {/* Navigation */}
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
@@ -165,6 +230,13 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Org badge in header */}
+            {organization && (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/20 rounded-lg">
+                <Building2 className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-300">{organization.name}</span>
+              </div>
+            )}
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"

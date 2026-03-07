@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { User, UserRole } from '../types';
+import { User, UserRole, Organization } from '../types';
 import { seedData } from '../data/seedData';
 
 const LS_USERS = 'oatms_users';
 const LS_SESSION = 'oatms_currentUser';
+const LS_ORG = 'oatms_currentOrg';
 
 interface AuthContextType {
   user: User | null;
@@ -12,6 +13,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   authLoading: boolean;
   hasRole: (roles: UserRole[]) => boolean;
+  organization: Organization | null;
+  organizations: Organization[];
+  switchOrg: (org: Organization) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +33,9 @@ function getUsers(): User[] {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [organization, setOrganization] = useState<Organization | null>(null);
+
+  const organizations = seedData.organizations;
 
   useEffect(() => {
     const storedUserId = localStorage.getItem(LS_SESSION);
@@ -36,6 +43,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const users = getUsers();
       const found = users.find(u => u.id === storedUserId);
       if (found && found.isActive) setUser(found);
+    }
+    // Restore org
+    const storedOrgId = localStorage.getItem(LS_ORG);
+    if (storedOrgId) {
+      const found = organizations.find(o => o.id === storedOrgId);
+      if (found) setOrganization(found);
     }
     setAuthLoading(false);
   }, []);
@@ -46,12 +59,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!found) return false;
     setUser(found);
     localStorage.setItem(LS_SESSION, found.id);
+    // Set default org if none selected
+    if (!localStorage.getItem(LS_ORG)) {
+      const defaultOrg = organizations[0];
+      setOrganization(defaultOrg);
+      localStorage.setItem(LS_ORG, defaultOrg.id);
+    }
     return true;
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
+    setOrganization(null);
     localStorage.removeItem(LS_SESSION);
+    localStorage.removeItem(LS_ORG);
+  }, []);
+
+  const switchOrg = useCallback((org: Organization) => {
+    setOrganization(org);
+    localStorage.setItem(LS_ORG, org.id);
   }, []);
 
   const hasRole = useCallback((roles: UserRole[]): boolean => {
@@ -68,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, authLoading, hasRole }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, authLoading, hasRole, organization, organizations, switchOrg }}>
       {children}
     </AuthContext.Provider>
   );

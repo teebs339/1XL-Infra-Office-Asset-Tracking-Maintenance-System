@@ -229,6 +229,12 @@ export interface SystemConfig {
   backupFrequency: 'daily' | 'weekly' | 'monthly';
 }
 
+export interface Organization {
+  id: string;
+  name: string;
+  shortName: string;
+}
+
 export interface KPIData {
   assetAllocationRate: number;
   idleAssetPercentage: number;

@@ -1,7 +1,7 @@
 import type {
   User, Department, Location, Asset, Allocation, Maintenance, Repair,
   Vendor, Consumable, ConsumableAllocation, Procurement, DepreciationRecord,
-  AuditLog, Notification, Document, SystemConfig,
+  AuditLog, Notification, Document, SystemConfig, Organization,
 } from '../types';
 
 // ── Locations ──────────────────────────────────────────────
@@ -199,6 +199,13 @@ const systemConfig: SystemConfig = {
   backupFrequency: 'weekly',
 };
 
+// ── Organizations ─────────────────────────────────────────
+const organizations: Organization[] = [
+  { id: 'org-1', name: '1XL Ventures', shortName: 'VENTURES' },
+  { id: 'org-2', name: '1XL Infra', shortName: 'INFRA' },
+  { id: 'org-3', name: '1XL Universe', shortName: 'UNIVERSE' },
+];
+
 // ── Export ──────────────────────────────────────────────────
 export const seedData = {
   users,
@@ -217,4 +224,5 @@ export const seedData = {
   notifications,
   documents,
   systemConfig,
+  organizations,
 };
